@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function Subscriptions({ navigate }) {
-  const { subscriptions, orders, skipSubscription, cancelSubscription, user } = useApp();
+  const { subscriptions, orders, skipSubscription, cancelSubscription, user, showToast } = useApp();
   const active = subscriptions.filter((s) => s.status === 'active');
   const inactive = subscriptions.filter((s) => s.status !== 'active');
   const mealOrders = orders.filter((o) => o.status === 'confirmed');
@@ -45,15 +45,23 @@ export default function Subscriptions({ navigate }) {
                   </p>
                 </div>
                 <b className="price">
-                  ${s.price.toFixed(2)}
+                  ${Number(s.price).toFixed(2)}
                   <small>/ week</small>
                 </b>
               </div>
               <div className="sub-actions">
-                <button type="button" className="btn-secondary" onClick={() => skipSubscription(s.id)}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => skipSubscription(s.id).catch((e) => showToast(e.message))}
+                >
                   Skip Next Week
                 </button>
-                <button type="button" className="link danger" onClick={() => cancelSubscription(s.id)}>
+                <button
+                  type="button"
+                  className="link danger"
+                  onClick={() => cancelSubscription(s.id).catch((e) => showToast(e.message))}
+                >
                   Cancel Subscription
                 </button>
               </div>
@@ -82,7 +90,7 @@ export default function Subscriptions({ navigate }) {
                     ))}
                   </ul>
                 </div>
-                <b className="price">${order.total.toFixed(2)}</b>
+                <b className="price">${Number(order.total).toFixed(2)}</b>
               </div>
             </article>
           ))}

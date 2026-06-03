@@ -1,56 +1,99 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { getPlanById } from '../data';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { api } from '../api';
+import { useCatalog } from './CatalogContext';
 import {
+  clearAuth,
   loadCart,
-  loadCookApplications,
-  loadOrders,
   loadPendingPlan,
-  loadSubscriptions,
+  loadToken,
   loadUser,
   saveCart,
-  saveCookApplications,
-  saveOrders,
   savePendingPlan,
-  saveSubscriptions,
+  saveToken,
   saveUser,
 } from '../storage';
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
+  const { getPlanById } = useCatalog();
   const [user, setUser] = useState(() => loadUser());
   const [cart, setCart] = useState(() => loadCart());
-  const [subscriptions, setSubscriptions] = useState(() => loadSubscriptions());
-  const [orders, setOrders] = useState(() => loadOrders());
-  const [cookApplications, setCookApplications] = useState(() => loadCookApplications());
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [pendingPlan, setPendingPlanState] = useState(() => loadPendingPlan());
   const [toast, setToast] = useState(null);
+  const [authLoading, setAuthLoading] = useState(!!loadToken());
 
   const showToast = useCallback((message) => {
     setToast(message);
     setTimeout(() => setToast(null), 2800);
   }, []);
 
-  const login = useCallback((email, name) => {
-    const next = { email, name: name || email.split('@')[0] };
-    setUser(next);
-    saveUser(next);
-    showToast(`Welcome back, ${next.name}!`);
-  }, [showToast]);
+  const refreshUserData = useCallback(async () => {
+    const [subs, ords] = await Promise.all([api.listSubscriptions(), api.listOrders()]);
+    setSubscriptions(subs);
+    setOrders(ords);
+  }, []);
+
+  useEffect(() => {
+    const token = loadToken();
+    if (!token) {
+      setAuthLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        const me = await api.me();
+        setUser(me);
+        saveUser(me);
+        await refreshUserData();
+      } catch {
+        clearAuth();
+        setUser(null);
+        setSubscriptions([]);
+        setOrders([]);
+      } finally {
+        setAuthLoading(false);
+      }
+    })();
+  }, [refreshUserData]);
+
+  const login = useCallback(
+    async (email, password, name, mode = 'login') => {
+      const body = { email: email.trim().toLowerCase(), password };
+      const data =
+        mode === 'signup'
+          ? await api.register({ ...body, name: name || email.split('@')[0] })
+          : await api.login(body);
+      saveToken(data.token);
+      saveUser(data.user);
+      setUser(data.user);
+      await refreshUserData();
+      showToast(`Welcome back, ${data.user.name}!`);
+      return data.user;
+    },
+    [refreshUserData, showToast]
+  );
 
   const logout = useCallback(() => {
+    clearAuth();
     setUser(null);
-    saveUser(null);
+    setSubscriptions([]);
+    setOrders([]);
     showToast('You have been logged out.');
   }, [showToast]);
 
-  const selectPlan = useCallback((planId) => {
-    const plan = getPlanById(planId);
-    if (!plan) return null;
-    setPendingPlanState(plan);
-    savePendingPlan(plan);
-    return plan;
-  }, []);
+  const selectPlan = useCallback(
+    (planId) => {
+      const plan = getPlanById(planId);
+      if (!plan) return null;
+      setPendingPlanState(plan);
+      savePendingPlan(plan);
+      return plan;
+    },
+    [getPlanById]
+  );
 
   const clearPendingPlan = useCallback(() => {
     setPendingPlanState(null);
@@ -88,48 +131,44 @@ export function AppProvider({ children }) {
     saveCart([]);
   }, []);
 
-  const createSubscription = useCallback((payload) => {
-    const sub = {
-      id: `sub-${Date.now()}`,
-      type: 'subscription',
-      createdAt: new Date().toISOString(),
-      status: 'active',
-      ...payload,
-    };
-    setSubscriptions((prev) => {
-      const next = [sub, ...prev];
-      saveSubscriptions(next);
-      return next;
-    });
-    clearPendingPlan();
-    return sub;
-  }, [clearPendingPlan]);
+  const createSubscription = useCallback(
+    async (payload) => {
+      const sub = await api.createSubscription({
+        planId: payload.planId,
+        planName: payload.planName,
+        cookId: payload.cookId,
+        cookName: payload.cookName,
+        price: payload.price,
+        mealsPerWeek: payload.mealsPerWeek,
+        location: payload.location,
+        pickupDays: payload.pickupDays,
+        pickupTime: payload.pickupTime,
+        paymentLast4: payload.paymentLast4,
+      });
+      setSubscriptions((prev) => [sub, ...prev]);
+      clearPendingPlan();
+      return sub;
+    },
+    [clearPendingPlan]
+  );
 
   const createMealOrder = useCallback(
-    (payload) => {
-      const order = {
-        id: `order-${Date.now()}`,
-        type: 'meal',
-        createdAt: new Date().toISOString(),
-        status: 'confirmed',
-        items: cart.map(({ key, name, day, cookName, cookId, price, qty, image }) => ({
-          key,
-          name,
-          day,
-          cookName,
-          cookId,
-          price,
-          qty,
-          image,
-        })),
-        total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
-        ...payload,
-      };
-      setOrders((prev) => {
-        const next = [order, ...prev];
-        saveOrders(next);
-        return next;
+    async (payload) => {
+      const items = cart.map(({ key, name, day, cookName, cookId, price, qty, image }) => ({
+        key,
+        name,
+        day,
+        cookName,
+        cookId,
+        price,
+        qty,
+        image: image || '',
+      }));
+      const order = await api.createOrder({
+        paymentLast4: payload.paymentLast4,
+        items,
       });
+      setOrders((prev) => [order, ...prev]);
       setCart([]);
       saveCart([]);
       return order;
@@ -137,32 +176,26 @@ export function AppProvider({ children }) {
     [cart]
   );
 
-  const skipSubscription = useCallback((id) => {
-    setSubscriptions((prev) => {
-      const next = prev.map((s) => (s.id === id ? { ...s, status: 'skipped', skippedAt: new Date().toISOString() } : s));
-      saveSubscriptions(next);
-      return next;
-    });
-    showToast('Next week skipped.');
-  }, [showToast]);
+  const skipSubscription = useCallback(
+    async (id) => {
+      const updated = await api.subscriptionAction(id, 'skip');
+      setSubscriptions((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      showToast('Next week skipped.');
+    },
+    [showToast]
+  );
 
-  const cancelSubscription = useCallback((id) => {
-    setSubscriptions((prev) => {
-      const next = prev.map((s) => (s.id === id ? { ...s, status: 'cancelled', cancelledAt: new Date().toISOString() } : s));
-      saveSubscriptions(next);
-      return next;
-    });
-    showToast('Subscription cancelled.');
-  }, [showToast]);
+  const cancelSubscription = useCallback(
+    async (id) => {
+      const updated = await api.subscriptionAction(id, 'cancel');
+      setSubscriptions((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      showToast('Subscription cancelled.');
+    },
+    [showToast]
+  );
 
-  const submitCookApplication = useCallback((form) => {
-    const app = { id: `app-${Date.now()}`, ...form, status: 'pending', submittedAt: new Date().toISOString() };
-    setCookApplications((prev) => {
-      const next = [app, ...prev];
-      saveCookApplications(next);
-      return next;
-    });
-    return app;
+  const submitCookApplication = useCallback(async (form) => {
+    return api.submitCookApplication(form);
   }, []);
 
   const value = useMemo(
@@ -171,9 +204,9 @@ export function AppProvider({ children }) {
       cart,
       subscriptions,
       orders,
-      cookApplications,
       pendingPlan,
       toast,
+      authLoading,
       login,
       logout,
       selectPlan,
@@ -194,9 +227,9 @@ export function AppProvider({ children }) {
       cart,
       subscriptions,
       orders,
-      cookApplications,
       pendingPlan,
       toast,
+      authLoading,
       login,
       logout,
       selectPlan,

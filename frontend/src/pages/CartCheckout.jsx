@@ -30,7 +30,7 @@ export default function CartCheckout({ navigate }) {
     );
   }
 
-  const handleConfirm = (e) => {
+  const handleConfirm = async (e) => {
     e.preventDefault();
     const err = validatePayment({ cardName, cardNumber, expiry, cvc });
     if (err) {
@@ -39,13 +39,16 @@ export default function CartCheckout({ navigate }) {
     }
     setSubmitting(true);
     setError('');
-    const order = createMealOrder({
-      paymentLast4: cardNumber.replace(/\s/g, '').slice(-4),
-    });
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      const order = await createMealOrder({
+        paymentLast4: cardNumber.replace(/\s/g, '').slice(-4),
+      });
       navigate(`/order-success/${order.id}`);
-    }, 400);
+    } catch (ex) {
+      setError(ex.message || 'Checkout failed.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

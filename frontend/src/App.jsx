@@ -3,6 +3,7 @@ import Nav from './components/Nav';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
 import { AppProvider, useApp } from './context/AppContext';
+import { CatalogProvider } from './context/CatalogContext';
 import { useRouter } from './hooks/useRouter';
 import { saveReturnTo } from './storage';
 import Home from './pages/Home';
@@ -88,8 +89,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppRoutes />
-    </AppProvider>
+    <CatalogProvider>
+      <AppProvider>
+        <AppRoutes />
+      </AppProvider>
+    </CatalogProvider>
   );
 }

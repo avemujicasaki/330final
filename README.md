@@ -47,7 +47,7 @@ npm run preview     # serves the built app (default http://localhost:4173)
 - My Orders: active subscriptions (skip / cancel) and meal order history
 - Become a Student Cook application form
 - Static pages: Guidelines, Safety, Terms, Support
-- Client state persisted in **localStorage** (demo mode)
+- Login, catalog, subscriptions, and orders via **Django API**; cart/pending plan in localStorage
 
 ## Run the backend
 
@@ -92,16 +92,16 @@ Authenticated requests use header: `Authorization: Token <your-token>`
 
 Full endpoint list: [backend/README.md](backend/README.md)
 
-> **Note:** The frontend UI still uses localStorage for demo persistence. The Django API is implemented and can be tested with curl or Postman; wiring the React app to the API is a future integration step.
+The React app calls the Django API via Vite dev proxy (`/api` → port 8000). **Cart** and **pending plan** stay in localStorage; **login, subscriptions, orders, and catalog** use the API.
 
 ## Run frontend and backend together
 
-Use two terminals:
+Use two terminals (frontend will not load plans without the backend):
 
 | Terminal | Command | URL |
 |----------|---------|-----|
-| 1 | `cd frontend && npm run dev` | http://localhost:5173 |
-| 2 | `cd backend && python3 manage.py runserver 8000` | http://127.0.0.1:8000/api/ |
+| 1 | `cd backend && python3 manage.py runserver 8000` | http://127.0.0.1:8000/api/ |
+| 2 | `cd frontend && npm run dev` | http://localhost:5173 |
 
 ## Page flow
 
@@ -135,8 +135,7 @@ User (1) ── has many ── Subscription, MealOrder, CookApplication
 |-------|--------|
 | Frontend | React 19, Vite, lucide-react, custom CSS, History API routing (`useRouter`) |
 | Backend | Django 4, Django REST Framework, SQLite, Token auth, django-cors-headers |
-| Persistence (UI demo) | Browser localStorage |
-| Persistence (API) | `backend/db.sqlite3` |
+| Persistence | API + SQLite (`db.sqlite3`); cart/pending plan in localStorage |
 
 ## Frontend project structure
 
@@ -146,7 +145,8 @@ frontend/src/
 ├── components/      # Nav, Footer, PaymentForm, OrderModal, Toast, …
 ├── context/         # AppContext (cart, user, subscriptions, orders)
 ├── hooks/           # useRouter.js
-├── data/            # data.js, images.js (seed content for the UI)
-├── storage.js       # localStorage helpers
+├── api.js           # HTTP client for Django API
+├── data/            # filters, static pages
+├── storage.js       # token, cart, pending plan
 └── utils/           # payment validation
 ```

@@ -14,18 +14,26 @@ export default function BecomeCook({ navigate }) {
     bio: '',
   });
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.includes('@') || !form.specialty.trim() || !form.location.trim()) {
       setError('Please fill in name, email, specialty, and pickup location.');
       return;
     }
-    submitCookApplication(form);
-    setSubmitted(true);
+    setSubmitting(true);
     setError('');
+    try {
+      await submitCookApplication(form);
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || 'Submission failed.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -73,8 +81,8 @@ export default function BecomeCook({ navigate }) {
           <textarea value={form.bio} onChange={update('bio')} rows={4} placeholder="Tell students about your cooking style…" />
         </label>
         {error && <p className="form-error">{error}</p>}
-        <button type="submit" className="primary full">
-          Submit Application
+        <button type="submit" className="primary full" disabled={submitting}>
+          {submitting ? 'Submitting…' : 'Submit Application'}
         </button>
       </form>
     </main>

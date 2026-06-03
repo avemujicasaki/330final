@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { CalendarDays, ShieldCheck, Utensils } from 'lucide-react';
 import PaymentForm from '../components/PaymentForm';
-import { getCookById } from '../data';
 import { useApp } from '../context/AppContext';
+import { useCatalog } from '../context/CatalogContext';
 import { validatePayment } from '../utils/payment';
 
 export default function Confirm({ navigate }) {
   const { pendingPlan, user, createSubscription } = useApp();
+  const { cooksById } = useCatalog();
   const [cardName, setCardName] = useState(user?.name || '');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -28,9 +29,9 @@ export default function Confirm({ navigate }) {
     );
   }
 
-  const cook = getCookById(pendingPlan.cookId);
+  const cook = cooksById[pendingPlan.cookId];
 
-  const handleConfirm = (e) => {
+  const handleConfirm = async (e) => {
     e.preventDefault();
     const err = validatePayment({ cardName, cardNumber, expiry, cvc });
     if (err) {
@@ -39,22 +40,25 @@ export default function Confirm({ navigate }) {
     }
     setSubmitting(true);
     setError('');
-    const sub = createSubscription({
-      planId: pendingPlan.id,
-      planName: pendingPlan.name,
-      cookId: pendingPlan.cookId,
-      cookName: cook?.name,
-      price: pendingPlan.price,
-      mealsPerWeek: pendingPlan.mealsPerWeek,
-      location: cook?.location || pendingPlan.location,
-      pickupDays: cook?.pickupDays,
-      pickupTime: cook?.pickupTime,
-      paymentLast4: cardNumber.replace(/\s/g, '').slice(-4),
-    });
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      const sub = await createSubscription({
+        planId: pendingPlan.id,
+        planName: pendingPlan.name,
+        cookId: pendingPlan.cookId,
+        cookName: cook?.name || 'Campus Cook',
+        price: pendingPlan.price,
+        mealsPerWeek: pendingPlan.mealsPerWeek,
+        location: cook?.location || pendingPlan.location,
+        pickupDays: cook?.pickupDays || 'Mon–Fri',
+        pickupTime: cook?.pickupTime || '6:00 PM',
+        paymentLast4: cardNumber.replace(/\s/g, '').slice(-4),
+      });
       navigate(`/success/${sub.id}`);
-    }, 400);
+    } catch (ex) {
+      setError(ex.message || 'Could not create subscription.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

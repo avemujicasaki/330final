@@ -1,21 +1,52 @@
-import React, { useState } from 'react';
-import { CalendarDays, Clock, MapPin, Plus, Star } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CalendarDays, Clock, Leaf, MapPin, Plus, Star, Utensils, Zap } from 'lucide-react';
 import MealImage from '../components/MealImage';
 import OrderModal from '../components/OrderModal';
-import { getCookById, getPlanById, plans } from '../data';
 import { useApp } from '../context/AppContext';
+import { useCatalog } from '../context/CatalogContext';
 
-const COOK_PLAN_MAP = { priya: 'thai', mark: 'muscle', yuki: 'bento' };
+const MENU_ICONS = { Leaf, Zap, Utensils };
 
 export default function CookDetail({ cookId, navigate }) {
   const { pendingPlan, selectPlan } = useApp();
-  const cook = getCookById(cookId);
+  const { plans, getPlanById, fetchCook } = useCatalog();
+  const [cook, setCook] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [orderItem, setOrderItem] = useState(null);
 
-  if (!cook) {
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError(null);
+    fetchCook(cookId)
+      .then((c) => {
+        if (active) setCook(c);
+      })
+      .catch((e) => {
+        if (active) setLoadError(e.message || 'Failed to load cook.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [cookId, fetchCook]);
+
+  if (loading) {
+    return (
+      <main className="container page">
+        <p className="muted">Loading cook profile…</p>
+      </main>
+    );
+  }
+
+  if (loadError || !cook) {
     return (
       <main className="container page">
         <h1>Cook not found</h1>
+        <p className="form-error">{loadError || 'This cook is unavailable.'}</p>
         <button type="button" className="primary" onClick={() => navigate('/plans')}>
           Browse Plans
         </button>
@@ -23,15 +54,12 @@ export default function CookDetail({ cookId, navigate }) {
     );
   }
 
-  const defaultPlanId = COOK_PLAN_MAP[cookId];
+  const defaultPlan = plans.find((p) => p.cookId === cookId);
   const plan =
-    pendingPlan?.cookId === cookId
-      ? pendingPlan
-      : getPlanById(defaultPlanId) || plans.find((p) => p.cookId === cookId);
+    pendingPlan?.cookId === cookId ? pendingPlan : getPlanById(defaultPlan?.id) || defaultPlan;
 
   const handleReserve = () => {
     if (plan) selectPlan(plan.id);
-    else if (defaultPlanId) selectPlan(defaultPlanId);
     navigate('/confirm');
   };
 
@@ -82,7 +110,7 @@ export default function CookDetail({ cookId, navigate }) {
         <p>Freshly prepared daily with love.</p>
         <div className="plan-grid">
           {cook.menu.map((m) => {
-            const Icon = m.icon;
+            const Icon = MENU_ICONS[m.icon] || Utensils;
             return (
               <article className="meal-card" key={m.id}>
                 <div className="img-wrap">

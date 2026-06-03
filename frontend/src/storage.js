@@ -1,9 +1,7 @@
 const KEYS = {
   user: 'coachshare_user',
+  token: 'coachshare_token',
   cart: 'coachshare_cart',
-  subscriptions: 'coachshare_subscriptions',
-  orders: 'coachshare_orders',
-  cookApplications: 'coachshare_cook_apps',
   pendingPlan: 'coachshare_pending_plan',
   returnTo: 'coachshare_return_to',
 };
@@ -30,28 +28,26 @@ export function saveUser(user) {
   else localStorage.removeItem(KEYS.user);
 }
 
+export function loadToken() {
+  return localStorage.getItem(KEYS.token);
+}
+
+export function saveToken(token) {
+  if (token) localStorage.setItem(KEYS.token, token);
+  else localStorage.removeItem(KEYS.token);
+}
+
+export function clearAuth() {
+  localStorage.removeItem(KEYS.user);
+  localStorage.removeItem(KEYS.token);
+}
+
 export function loadCart() {
   return read(KEYS.cart, []);
 }
 
 export function saveCart(cart) {
   write(KEYS.cart, cart);
-}
-
-export function loadSubscriptions() {
-  return read(KEYS.subscriptions, []);
-}
-
-export function saveSubscriptions(subs) {
-  write(KEYS.subscriptions, subs);
-}
-
-export function loadCookApplications() {
-  return read(KEYS.cookApplications, []);
-}
-
-export function saveCookApplications(apps) {
-  write(KEYS.cookApplications, apps);
 }
 
 export function loadPendingPlan() {
@@ -61,14 +57,6 @@ export function loadPendingPlan() {
 export function savePendingPlan(plan) {
   if (plan) write(KEYS.pendingPlan, plan);
   else localStorage.removeItem(KEYS.pendingPlan);
-}
-
-export function loadOrders() {
-  return read(KEYS.orders, []);
-}
-
-export function saveOrders(orders) {
-  write(KEYS.orders, orders);
 }
 
 export function saveReturnTo(path) {

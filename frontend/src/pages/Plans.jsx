@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { MapPin, ShieldCheck, Star } from 'lucide-react';
 import MealImage from '../components/MealImage';
-import { FILTER_OPTIONS, filterPlans, getCookById, plans } from '../data';
+import { FILTER_OPTIONS, filterPlans } from '../data';
 import { useApp } from '../context/AppContext';
+import { useCatalog } from '../context/CatalogContext';
 
 export default function Plans({ navigate }) {
   const { user, selectPlan } = useApp();
+  const { plans, cooksById, loading, error } = useCatalog();
   const [filter, setFilter] = useState('All Plans');
 
-  const filtered = useMemo(() => filterPlans(plans, filter), [filter]);
+  const filtered = useMemo(() => filterPlans(plans, filter), [plans, filter]);
   const displayName = user?.name || 'Guest';
 
   const openPlan = (planId, e) => {
@@ -16,6 +18,24 @@ export default function Plans({ navigate }) {
     const plan = selectPlan(planId);
     if (plan) navigate(`/cook/${plan.cookId}`);
   };
+
+  if (loading) {
+    return (
+      <main className="container page">
+        <p className="muted">Loading meal plans…</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="container page">
+        <h1>Could not load plans</h1>
+        <p className="form-error">{error}</p>
+        <p className="muted">Make sure the backend is running: python3 manage.py runserver 8000</p>
+      </main>
+    );
+  }
 
   return (
     <main className="container page">
@@ -41,7 +61,7 @@ export default function Plans({ navigate }) {
       ) : (
         <div className="plan-grid">
           {filtered.map((p) => {
-            const cook = getCookById(p.cookId);
+            const cook = cooksById[p.cookId];
             return (
               <article
                 className="meal-card clickable"

@@ -3,18 +3,19 @@ import { useApp } from '../context/AppContext';
 import { getPostLoginPath } from '../storage';
 
 export default function Login({ navigate }) {
-  const { login, user } = useApp();
+  const { login, user, authLoading } = useApp();
   const [email, setEmail] = useState('alex@university.edu');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('Alex');
   const [mode, setMode] = useState('login');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user) navigate(getPostLoginPath());
-  }, [user, navigate]);
+    if (!authLoading && user) navigate(getPostLoginPath());
+  }, [user, authLoading, navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.includes('@')) {
       setError('Enter a valid campus email.');
@@ -29,14 +30,29 @@ export default function Login({ navigate }) {
       return;
     }
     setError('');
-    login(email, mode === 'signup' ? name : undefined);
-    navigate(getPostLoginPath());
+    setSubmitting(true);
+    try {
+      await login(email, password, mode === 'signup' ? name : undefined, mode);
+      navigate(getPostLoginPath());
+    } catch (err) {
+      setError(err.message || 'Login failed.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (authLoading) {
+    return (
+      <main className="container page narrow">
+        <p className="muted">Restoring your session…</p>
+      </main>
+    );
+  }
 
   return (
     <main className="container page narrow">
       <h1>{mode === 'login' ? 'Log in' : 'Create account'}</h1>
-      <p>Use your campus email. Demo mode accepts any password with 4+ characters.</p>
+      <p>Use your campus email and password (4+ characters).</p>
       <form className="auth-form" onSubmit={handleSubmit}>
         {mode === 'signup' && (
           <label className="field">
@@ -53,8 +69,8 @@ export default function Login({ navigate }) {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
         {error && <p className="form-error">{error}</p>}
-        <button type="submit" className="primary full">
-          {mode === 'login' ? 'Log in' : 'Sign up'}
+        <button type="submit" className="primary full" disabled={submitting}>
+          {submitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Sign up'}
         </button>
       </form>
       <button
