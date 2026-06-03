@@ -1,0 +1,27 @@
+# Dependencies
+frontend/node_modules/
+
+# Build
+frontend/dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Django / local DB
+backend/db.sqlite3
+backend/*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Env secrets
+.env
+.env.*
