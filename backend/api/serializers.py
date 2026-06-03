@@ -186,7 +186,7 @@ class OrderItemWriteSerializer(serializers.Serializer):
     cookId = serializers.CharField()
     price = serializers.DecimalField(max_digits=6, decimal_places=2)
     qty = serializers.IntegerField(min_value=1)
-    image = serializers.URLField(required=False, allow_blank=True, default='')
+    image = serializers.CharField(required=False, allow_blank=True, default='')
 
 
 class MealOrderSerializer(serializers.ModelSerializer):

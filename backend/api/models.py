@@ -143,7 +143,7 @@ class OrderItem(models.Model):
     cook_id_slug = models.CharField(max_length=40)
     price = models.DecimalField(max_digits=6, decimal_places=2)
     qty = models.PositiveSmallIntegerField()
-    image = models.URLField(max_length=500, blank=True)
+    image = models.CharField(max_length=500, blank=True)
 
 
 class CookApplication(models.Model):
