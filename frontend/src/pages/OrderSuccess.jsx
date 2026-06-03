@@ -30,7 +30,7 @@ export default function OrderSuccess({ orderId, navigate }) {
         <h1>Order confirmed!</h1>
         <p>
           Order <strong>{order.id}</strong> — {itemCount} {itemCount === 1 ? 'meal' : 'meals'} for $
-          {order.total.toFixed(2)}.
+          {Number(order.total).toFixed(2)}.
         </p>
         <div className="checkout-items">
           {order.items.map((item) => (

@@ -32,7 +32,7 @@ export default function Success({ subscriptionId, navigate }) {
             <h2>{sub.planName}</h2>
             <p>with {sub.cookName}</p>
             <p>
-              <strong>${sub.price.toFixed(2)}</strong> / week
+              <strong>${Number(sub.price).toFixed(2)}</strong> / week
             </p>
           </article>
         </div>

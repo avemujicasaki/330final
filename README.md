@@ -103,6 +103,16 @@ Use two terminals (frontend will not load plans without the backend):
 | 1 | `cd backend && python3 manage.py runserver 8000` | http://127.0.0.1:8000/api/ |
 | 2 | `cd frontend && npm run dev` | http://localhost:5173 |
 
+### Automated UI smoke test (optional)
+
+With both servers running:
+
+```bash
+cd frontend
+npx playwright install chromium   # first time only
+npm run test:e2e
+```
+
 ## Page flow
 
 ```text
