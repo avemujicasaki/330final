@@ -1,1 +1,1 @@
-{"scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},"dependencies":{"@vitejs/plugin-react":"latest","lucide-react":"latest","react":"latest","react-dom":"latest","vite":"latest"},"devDependencies":{"playwright":"^1.60.0"}}
+{"scripts":{"dev":"vite","build":"vite build","preview":"vite preview","test:e2e":"node scripts/e2e-smoke.mjs"},"dependencies":{"@vitejs/plugin-react":"latest","lucide-react":"latest","react":"latest","react-dom":"latest","vite":"latest"},"devDependencies":{"playwright":"^1.60.0"}}
